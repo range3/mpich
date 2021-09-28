@@ -1,5 +1,11 @@
 # Lines that start with '#' are comments.  See gitignore(5) for more info.
 
+# intermediate files
+removed_la_files.txt
+spack-build-*
+spack-configure-*
+testlist.gpu
+
 # objects and archives
 *.[oa]
 # libtool objects
