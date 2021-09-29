@@ -31,6 +31,7 @@ include $(top_srcdir)/adio/ad_nfs/Makefile.mk
 ## NTFS builds are handled entirely by the separate Windows build system
 ##include $(top_srcdir)/adio/ad_ntfs/Makefile.mk
 include $(top_srcdir)/adio/ad_panfs/Makefile.mk
+include $(top_srcdir)/adio/ad_pmem/Makefile.mk
 include $(top_srcdir)/adio/ad_pvfs2/Makefile.mk
 include $(top_srcdir)/adio/ad_testfs/Makefile.mk
 include $(top_srcdir)/adio/ad_ufs/Makefile.mk
