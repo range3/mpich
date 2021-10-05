@@ -992,10 +992,14 @@ if test -n "$file_system_quobytefs" ; then
 fi
 
 if test -n "$file_system_pmem"; then
-  AC_CHECK_HEADERS(libpmemobj.h,
+  PKG_CHECK_MODULES([PMEMBB], [pmembb-c],
     AC_DEFINE(ROMIO_PMEM,1,[Define for ROMIO with PMEM]),
-    AC_MSG_ERROR([PMEM support requested but cannot find libpmemobj.h header file])
+    AC_MSG_ERROR([PMEM support requested but cannot find pmembb-c.pc])
   )
+  AC_SUBST([PMEMBB_LIBS])
+  AC_SUBST([PMEMBB_CFLAGS])
+  PAC_APPEND_FLAG([${PMEMBB_LIBS}], [LIBS])
+  PAC_APPEND_FLAG([${PMEMBB_CFLAGS}], [CFLAGS])
 fi
 
 #
