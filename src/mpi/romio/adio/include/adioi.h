@@ -49,6 +49,12 @@ struct ADIOI_Hints_struct {
     int min_fdomain_size;
     char *cb_config_list;
     int *ranklist;
+    struct {
+      int io_nthreads;
+      int pool_per_rank;
+      char* pool_list;
+      int pool_size;
+    } pmem;
     union {
         struct {
             int chunk_size;
