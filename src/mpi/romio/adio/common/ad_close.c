@@ -77,6 +77,12 @@ void ADIO_Close(ADIO_File fd, int *error_code)
         ADIOI_Free(fd->hints->fs_hints.bg.bridgelistnum);
 #endif
 
+    /* same reason above */
+#ifdef ROMIO_PMEM
+    if(fd->hints && fd->hints->pmem.pool_list)
+        ADIOI_Free(fd->hints->pmem.pool_list);
+#endif
+
     /* Persistent File Realms */
     if (fd->hints->cb_pfr == ADIOI_HINT_ENABLE) {
         /* AAR, FSIZE, and User provided uniform File realms */

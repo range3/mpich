@@ -5,15 +5,11 @@
 
 #include "ad_pmem.h"
 #include "adioi.h"
+#include "pmembb/pmembb.h"
 
 void ADIOI_PMEM_Close(ADIO_File fd, int *error_code) {
   int myrank, nprocs;
-
-  fd->fd_sys = -1;
-  *error_code = MPI_SUCCESS;
-
-  if (fd->hints && fd->hints->pmem.pool_list)
-    ADIOI_Free(fd->hints->pmem.pool_list);
+  PMemBBPool pop;
 
 #ifdef DEBUG
   MPI_Comm_size(fd->comm, &nprocs);
@@ -21,4 +17,13 @@ void ADIOI_PMEM_Close(ADIO_File fd, int *error_code) {
   FPRINTF(stdout, "[%d/%d] ADIOI_PMEM_Close called on %s\n", myrank, nprocs,
           fd->filename);
 #endif
+
+  pop = fd->fs_ptr;
+
+  if (pop) {
+    pmembb_pool_close(pop);
+    fd->fs_ptr = NULL;
+  }
+
+  ADIOI_GEN_Close(fd, error_code);
 }
