@@ -24,7 +24,7 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
   static char myname[] = "ADIOI_PMEM_OPEN";
   char *pool_path, *buf = NULL;
   int len;
-  PMemBBPool pop;
+  PMemBBPool* pop;
 
   MPI_Comm_rank(fd->comm, &myrank);
 

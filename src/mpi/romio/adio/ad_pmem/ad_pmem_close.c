@@ -9,7 +9,7 @@
 
 void ADIOI_PMEM_Close(ADIO_File fd, int *error_code) {
   int myrank, nprocs;
-  PMemBBPool pop;
+  PMemBBPool* pop;
 
 #ifdef DEBUG
   MPI_Comm_size(fd->comm, &nprocs);

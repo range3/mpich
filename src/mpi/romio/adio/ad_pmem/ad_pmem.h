@@ -12,6 +12,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+void ADIOI_PMEM_Init(ADIO_File fd, int *error_code);
 void ADIOI_PMEM_Open(ADIO_File fd, int *error_code);
 void ADIOI_PMEM_Close(ADIO_File fd, int *error_code);
 void ADIOI_PMEM_ReadContig(ADIO_File fd, void *buf, int count,
