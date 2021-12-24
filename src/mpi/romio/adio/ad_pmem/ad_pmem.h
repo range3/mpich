@@ -12,6 +12,11 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#ifdef ROMIO_PMEM
+#include <pmembb/pmembb.h>
+#endif
+
+
 void ADIOI_PMEM_Init(ADIO_File fd, int *error_code);
 void ADIOI_PMEM_Open(ADIO_File fd, int *error_code);
 void ADIOI_PMEM_Close(ADIO_File fd, int *error_code);

@@ -4,12 +4,12 @@
  */
 
 #include "ad_pmem.h"
+#include "ad_pmem_common.h"
 #include "adioi.h"
-#include "pmembb/pmembb.h"
 
 void ADIOI_PMEM_Close(ADIO_File fd, int *error_code) {
   int myrank, nprocs;
-  PMemBBPool* pop;
+  struct ADIOI_PMEM_fs_s *pmem_fs;
 
 #ifdef DEBUG
   MPI_Comm_size(fd->comm, &nprocs);
@@ -18,10 +18,19 @@ void ADIOI_PMEM_Close(ADIO_File fd, int *error_code) {
           fd->filename);
 #endif
 
-  pop = fd->fs_ptr;
+  pmem_fs = fd->fs_ptr;
 
-  if (pop) {
-    pmembb_pool_close(pop);
+  if (pmem_fs) {
+    if (pmem_fs->bb) {
+      pmembb_bb_close(pmem_fs->bb);
+    }
+    if (pmem_fs->file) {
+      pmembb_file_close(pmem_fs->file);
+    }
+    if (pmem_fs->pool) {
+      pmembb_pool_close(pmem_fs->pool);
+    }
+    ADIOI_Free(pmem_fs);
     fd->fs_ptr = NULL;
   }
 

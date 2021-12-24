@@ -4,6 +4,8 @@
  */
 
 #include "ad_pmem.h"
+#include "adio.h"
+#include "adio/ad_pmem/ad_pmem_common.h"
 #include "adio/ad_ufs/ad_ufs.h"
 #include "adioi.h"
 #include "libpmemobj/pool_base.h"
@@ -24,7 +26,7 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
   static char myname[] = "ADIOI_PMEM_OPEN";
   char *pool_path, *buf = NULL;
   int len;
-  PMemBBPool* pop;
+  struct ADIOI_PMEM_fs_s *pmem_fs;
 
   MPI_Comm_rank(fd->comm, &myrank);
 
@@ -50,26 +52,64 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
       *error_code =
           MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
                                __LINE__, MPI_ERR_OTHER, "**nomem2", 0);
-      return;
+      goto on_abort;
     }
     pool_path = buf;
     sprintf(pool_path, "%s.%d", fd->hints->pmem.pool_list, myrank);
   }
 
-  pop = pmembb_pool_open(pool_path);
-  if (pop == NULL && errno == ENOENT) {
-    pop = pmembb_pool_create(pool_path, fd->hints->pmem.pool_size,
-                             S_IWUSR | S_IRUSR);
+  pmem_fs = (ADIOI_PMEM_fs *)ADIOI_Malloc(sizeof(ADIOI_PMEM_fs));
+  if (pmem_fs == NULL) {
+    *error_code =
+        MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
+                             __LINE__, MPI_ERR_OTHER, "Error allc memory", 0);
+    goto on_abort;
+  }
+  memset(pmem_fs, 0, sizeof(ADIOI_PMEM_fs));
+
+  pmem_fs->pool = pmembb_pool_open(pool_path);
+  if (pmem_fs->pool == NULL && errno == ENOENT) {
+    pmem_fs->pool = pmembb_pool_create(pool_path, fd->hints->pmem.pool_size,
+                                       S_IWUSR | S_IRUSR);
   }
 
-  if (pop == NULL) {
+  if (pmem_fs->pool == NULL) {
     *error_code = ADIOI_Err_create_code(myname, pool_path, errno);
-    goto finalize;
+    goto on_abort;
   }
 
-  fd->fs_ptr = pop;
+  pmem_fs->file = pmembb_file_open(pmem_fs->pool, fd->filename);
+  if (pmem_fs->file == NULL && errno == ENOENT) {
+    pmem_fs->file = pmembb_file_create(pmem_fs->pool, fd->filename);
+  }
+
+  if (pmem_fs->file == NULL) {
+    *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
+    goto on_abort;
+  }
+
+  pmem_fs->bb = pmembb_bb_create(pmem_fs->file);
+  if(pmem_fs->bb == NULL) {
+    *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
+    goto on_abort;
+  }
+
+  fd->fs_ptr = pmem_fs;
   *error_code = MPI_SUCCESS;
 
+on_abort:
+  if (pmem_fs) {
+    if (pmem_fs->bb) {
+      pmembb_bb_close(pmem_fs->bb);
+    }
+    if (pmem_fs->file) {
+      pmembb_file_close(pmem_fs->file);
+    }
+    if (pmem_fs->pool) {
+      pmembb_pool_close(pmem_fs->pool);
+    }
+    ADIOI_Free(pmem_fs);
+  }
 finalize:
   if (buf) {
     ADIOI_Free(buf);
