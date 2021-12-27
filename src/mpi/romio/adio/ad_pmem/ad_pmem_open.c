@@ -26,7 +26,7 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
   static char myname[] = "ADIOI_PMEM_OPEN";
   char *pool_path, *buf = NULL;
   int len;
-  struct ADIOI_PMEM_fs_s *pmem_fs;
+  struct ADIOI_PMEM_fs_s *pmem_fs = NULL;
 
   MPI_Comm_rank(fd->comm, &myrank);
 
@@ -89,7 +89,7 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
   }
 
   pmem_fs->bb = pmembb_bb_create(pmem_fs->file);
-  if(pmem_fs->bb == NULL) {
+  if (pmem_fs->bb == NULL) {
     *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
     goto on_abort;
   }
@@ -97,6 +97,7 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
   fd->fs_ptr = pmem_fs;
   *error_code = MPI_SUCCESS;
 
+  goto finalize;
 on_abort:
   if (pmem_fs) {
     if (pmem_fs->bb) {
