@@ -36,6 +36,8 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
           fd->filename);
 #endif
 
+  ADIOI_PMEM_Init(fd, error_code);
+
   ADIOI_UFS_Open(fd, error_code);
   if (*error_code != MPI_SUCCESS) {
     return;

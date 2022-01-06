@@ -53,7 +53,7 @@ struct ADIOI_Hints_struct {
       int io_nthreads;
       int pool_per_rank;
       char* pool_list;
-      int pool_size;
+      size_t pool_size;
     } pmem;
     union {
         struct {

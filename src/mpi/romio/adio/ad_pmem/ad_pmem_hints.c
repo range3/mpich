@@ -21,7 +21,7 @@
 
 void ADIOI_PMEM_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code) {
   int myrank, nprocs, len;
-  char *value, *env;
+  char *value, *env, *pool_size = NULL, *pool_size_buf = NULL, *endptr;
   int initialized = 0;
   static char myname[] = "ADIOI_PMEM_SETINFO";
 
@@ -61,14 +61,13 @@ void ADIOI_PMEM_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code) {
       *error_code =
           MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
                                __LINE__, MPI_ERR_OTHER, "**nomem2", 0);
-      return;
+      goto finalize;
     }
     ADIOI_Strncpy(fd->hints->pmem.pool_list, value, len);
 
     env = getenv("MPIO_PMEM_POOL_SIZE");
-    value = env ? env : MPIO_PMEM_POOL_SIZE;
-    ADIOI_Info_set(fd->info, "mpio_pmem_pool_size", value);
-    fd->hints->pmem.pool_size = atoi(value);
+    pool_size = env ? env : MPIO_PMEM_POOL_SIZE;
+    ADIOI_Info_set(fd->info, "mpio_pmem_pool_size", pool_size);
   }
 
   /* set user specified values if exist */
@@ -85,10 +84,31 @@ void ADIOI_PMEM_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code) {
                                      &(fd->hints->pmem.pool_list), myname,
                                      error_code);
 
-    ADIOI_Info_check_and_install_int(fd, users_info, "mpio_pmem_pool_size",
-                                     &(fd->hints->pmem.pool_size), myname,
-                                     error_code);
+
+    if (ADIOI_Info_check_and_install_str(fd, users_info, "mpio_pmem_pool_size",
+                                         &pool_size_buf, myname,
+                                         error_code) == 0) {
+      if(pool_size_buf) {
+        pool_size = pool_size_buf;
+      }
+    }
+  }
+
+  if (pool_size) {
+    // set pool_size converting str to size_t
+    fd->hints->pmem.pool_size = (size_t)strtoumax(pool_size, &endptr, 10);
+    if (errno == ERANGE) {
+      *error_code =
+          MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
+                               __LINE__, MPI_ERR_OTHER, "**infoval", 0);
+      goto finalize;
+    }
   }
 
   *error_code = MPI_SUCCESS;
+
+finalize:
+  if (pool_size_buf) {
+    ADIOI_Free(pool_size_buf);
+  }
 }
