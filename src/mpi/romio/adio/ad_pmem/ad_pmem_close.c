@@ -28,7 +28,13 @@ void ADIOI_PMEM_Close(ADIO_File fd, int *error_code) {
       pmembb_file_close(pmem_fs->file);
     }
     if (pmem_fs->pool) {
-      pmembb_pool_close(pmem_fs->pool);
+      if (--ADIOI_PMEM_pool_ref_cnt <= 0) {
+        ADIOI_PMEM_pool = NULL;
+#ifdef DEBUG
+        FPRINTF(stdout, "[%d/%d] close pool\n", myrank, nprocs);
+#endif
+        pmembb_pool_close(pmem_fs->pool);
+      }
     }
     ADIOI_Free(pmem_fs);
     fd->fs_ptr = NULL;

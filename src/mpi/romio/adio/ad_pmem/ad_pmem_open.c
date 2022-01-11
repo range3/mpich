@@ -91,52 +91,6 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
     return;
   }
 
-  // get pool_path
-  if (fd->hints->pmem.pool_per_rank == ADIOI_HINT_DISABLE) {
-    lrank = get_local_rank();
-    if (lrank < 0) {
-      *error_code = MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE,
-                                         myname, __LINE__, MPI_ERR_OTHER,
-                                         "Local rank is not set in env", 0);
-      goto on_abort;
-    }
-    len = get_pool_name_at(
-        fd->hints->pmem.pool_list,
-        lrank % get_pool_list_size(fd->hints->pmem.pool_list), &begin);
-    if (len < 0) {
-      *error_code = MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE,
-                                         myname, __LINE__, MPI_ERR_OTHER,
-                                         "Error get pool name", 0);
-      goto on_abort;
-    }
-    buf = ADIOI_Malloc(len + 1);
-    if (buf == NULL) {
-      *error_code =
-          MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
-                               __LINE__, MPI_ERR_OTHER, "**nomem2", 0);
-      goto on_abort;
-    }
-    pool_path = buf;
-    ADIOI_Strncpy(pool_path, begin, len);
-    pool_path[len] = '\0';
-  } else {
-    // /path/to/pool_name.grank
-    len = (strlen(fd->hints->pmem.pool_list) + 1 + nDigits(grank) + 1) *
-          sizeof(char);
-    buf = ADIOI_Malloc(len);
-    if (buf == NULL) {
-      *error_code =
-          MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
-                               __LINE__, MPI_ERR_OTHER, "**nomem2", 0);
-      goto on_abort;
-    }
-    pool_path = buf;
-    sprintf(pool_path, "%s.%d", fd->hints->pmem.pool_list, grank);
-  }
-#ifdef DEBUG
-  FPRINTF(stdout, "[%d/%d] pool_path = %s\n", myrank, nprocs, pool_path);
-#endif
-
   pmem_fs = (ADIOI_PMEM_fs *)ADIOI_Malloc(sizeof(ADIOI_PMEM_fs));
   if (pmem_fs == NULL) {
     *error_code =
@@ -146,10 +100,64 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
   }
   memset(pmem_fs, 0, sizeof(ADIOI_PMEM_fs));
 
-  pmem_fs->pool = pmembb_pool_open(pool_path);
-  if (pmem_fs->pool == NULL && errno == ENOENT) {
-    pmem_fs->pool = pmembb_pool_create(pool_path, fd->hints->pmem.pool_size,
-                                       S_IWUSR | S_IRUSR);
+  if (ADIOI_PMEM_pool_ref_cnt == 0) {
+    // get pool_path
+    if (fd->hints->pmem.pool_per_rank == ADIOI_HINT_DISABLE) {
+      lrank = get_local_rank();
+      if (lrank < 0) {
+        *error_code = MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE,
+                                           myname, __LINE__, MPI_ERR_OTHER,
+                                           "Local rank is not set in env", 0);
+        goto on_abort;
+      }
+      len = get_pool_name_at(
+          fd->hints->pmem.pool_list,
+          lrank % get_pool_list_size(fd->hints->pmem.pool_list), &begin);
+      if (len < 0) {
+        *error_code = MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE,
+                                           myname, __LINE__, MPI_ERR_OTHER,
+                                           "Error get pool name", 0);
+        goto on_abort;
+      }
+      buf = ADIOI_Malloc(len + 1);
+      if (buf == NULL) {
+        *error_code =
+            MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
+                                 __LINE__, MPI_ERR_OTHER, "**nomem2", 0);
+        goto on_abort;
+      }
+      pool_path = buf;
+      ADIOI_Strncpy(pool_path, begin, len);
+      pool_path[len] = '\0';
+    } else {
+      // /path/to/pool_name.grank
+      len = (strlen(fd->hints->pmem.pool_list) + 1 + nDigits(grank) + 1) *
+            sizeof(char);
+      buf = ADIOI_Malloc(len);
+      if (buf == NULL) {
+        *error_code =
+            MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
+                                 __LINE__, MPI_ERR_OTHER, "**nomem2", 0);
+        goto on_abort;
+      }
+      pool_path = buf;
+      sprintf(pool_path, "%s.%d", fd->hints->pmem.pool_list, grank);
+    }
+#ifdef DEBUG
+    FPRINTF(stdout, "[%d/%d] open pool_path = %s\n", myrank, nprocs, pool_path);
+#endif
+
+    pmem_fs->pool = pmembb_pool_open(pool_path);
+    if (pmem_fs->pool == NULL && errno == ENOENT) {
+      pmem_fs->pool = pmembb_pool_create(pool_path, fd->hints->pmem.pool_size,
+                                         S_IWUSR | S_IRUSR);
+    }
+    ADIOI_PMEM_pool = pmem_fs->pool;
+    ADIOI_PMEM_pool_ref_cnt += 1;
+  } else {
+    // pool is already opend in this process.
+    pmem_fs->pool = ADIOI_PMEM_pool;
+    ADIOI_PMEM_pool_ref_cnt += 1;
   }
 
   if (pmem_fs->pool == NULL) {
@@ -186,7 +194,13 @@ on_abort:
       pmembb_file_close(pmem_fs->file);
     }
     if (pmem_fs->pool) {
-      pmembb_pool_close(pmem_fs->pool);
+      if (--ADIOI_PMEM_pool_ref_cnt <= 0) {
+#ifdef DEBUG
+        FPRINTF(stdout, "[%d/%d] close pool\n", myrank, nprocs);
+#endif
+        ADIOI_PMEM_pool = NULL;
+        pmembb_pool_close(pmem_fs->pool);
+      }
     }
     ADIOI_Free(pmem_fs);
   }

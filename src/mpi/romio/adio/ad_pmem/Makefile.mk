@@ -8,6 +8,7 @@ if BUILD_AD_PMEM
 noinst_HEADERS += adio/ad_pmem/ad_pmem.h
 
 romio_other_sources +=                \
+		adio/ad_pmem/ad_pmem_common.c   \
 		adio/ad_pmem/ad_pmem_init.c   \
     adio/ad_pmem/ad_pmem_close.c  \
     adio/ad_pmem/ad_pmem_read.c   \

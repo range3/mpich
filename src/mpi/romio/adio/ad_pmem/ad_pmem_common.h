@@ -10,5 +10,8 @@ struct ADIOI_PMEM_fs_s {
 };
 typedef struct ADIOI_PMEM_fs_s ADIOI_PMEM_fs;
 
+extern int ADIOI_PMEM_pool_ref_cnt;
+extern PMemBBPool* ADIOI_PMEM_pool;
+
 
 #endif /* AD_PMEM_COMMON_H_INCLUDED */
