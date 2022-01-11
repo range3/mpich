@@ -12,6 +12,7 @@
 #include "mpi.h"
 #include <limits.h>
 #include <pmembb/pmembb.h>
+#include <string.h>
 
 static int nDigits(int n) {
   if (n < 0)
@@ -21,19 +22,66 @@ static int nDigits(int n) {
   return 1 + nDigits(n / 10);
 }
 
+static int get_local_rank() {
+  char *str;
+  int local_rank = -1;
+
+  str = getenv("MPI_LOCALRANKID");
+  if (!str) {
+    str = getenv("OMPI_COMM_WORLD_LOCAL_RANK");
+  }
+  if (str) {
+    local_rank = atoi(str);
+  }
+  return local_rank;
+}
+
+static int get_pool_name_at(const char *pool_list, int n, const char **begin) {
+  int slen, skip;
+  const char *p = pool_list;
+
+  for (skip = n; skip > 0; --skip) {
+    slen = (int)strcspn(p, ",");
+    p += slen;
+
+    if (*p == '\0') {
+      return -1;
+    }
+
+    p += 1;
+  }
+
+  *begin = p;
+  return (int)strcspn(p, ",");
+}
+
+static int get_pool_list_size(const char *pool_list) {
+  int i, c;
+  for (i = 0, c = 1; pool_list[i]; ++i) {
+    if (pool_list[i] == ',') {
+      ++c;
+    }
+  }
+  return c;
+}
+
 void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
-  int myrank, nprocs;
+  int grank, myrank, nprocs, lrank;
   static char myname[] = "ADIOI_PMEM_OPEN";
   char *pool_path, *buf = NULL;
+  const char *begin;
   int len;
   struct ADIOI_PMEM_fs_s *pmem_fs = NULL;
 
+  MPI_Comm_rank(MPI_COMM_WORLD, &grank);
   MPI_Comm_rank(fd->comm, &myrank);
 
 #ifdef DEBUG
   MPI_Comm_size(fd->comm, &nprocs);
   FPRINTF(stdout, "[%d/%d] ADIOI_PMEM_Open called on %s\n", myrank, nprocs,
           fd->filename);
+  FPRINTF(stdout, "[%d/%d] local_rank = %d\n", myrank, nprocs,
+          get_local_rank());
 #endif
 
   ADIOI_PMEM_Init(fd, error_code);
@@ -43,11 +91,37 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
     return;
   }
 
+  // get pool_path
   if (fd->hints->pmem.pool_per_rank == ADIOI_HINT_DISABLE) {
-    pool_path = fd->hints->pmem.pool_list;
+    lrank = get_local_rank();
+    if (lrank < 0) {
+      *error_code = MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE,
+                                         myname, __LINE__, MPI_ERR_OTHER,
+                                         "Local rank is not set in env", 0);
+      goto on_abort;
+    }
+    len = get_pool_name_at(
+        fd->hints->pmem.pool_list,
+        lrank % get_pool_list_size(fd->hints->pmem.pool_list), &begin);
+    if (len < 0) {
+      *error_code = MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE,
+                                         myname, __LINE__, MPI_ERR_OTHER,
+                                         "Error get pool name", 0);
+      goto on_abort;
+    }
+    buf = ADIOI_Malloc(len + 1);
+    if (buf == NULL) {
+      *error_code =
+          MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
+                               __LINE__, MPI_ERR_OTHER, "**nomem2", 0);
+      goto on_abort;
+    }
+    pool_path = buf;
+    ADIOI_Strncpy(pool_path, begin, len);
+    pool_path[len] = '\0';
   } else {
-    // /path/to/pool_name.myrank
-    len = (strlen(fd->hints->pmem.pool_list) + 1 + nDigits(myrank) + 1) *
+    // /path/to/pool_name.grank
+    len = (strlen(fd->hints->pmem.pool_list) + 1 + nDigits(grank) + 1) *
           sizeof(char);
     buf = ADIOI_Malloc(len);
     if (buf == NULL) {
@@ -57,14 +131,17 @@ void ADIOI_PMEM_Open(ADIO_File fd, int *error_code) {
       goto on_abort;
     }
     pool_path = buf;
-    sprintf(pool_path, "%s.%d", fd->hints->pmem.pool_list, myrank);
+    sprintf(pool_path, "%s.%d", fd->hints->pmem.pool_list, grank);
   }
+#ifdef DEBUG
+  FPRINTF(stdout, "[%d/%d] pool_path = %s\n", myrank, nprocs, pool_path);
+#endif
 
   pmem_fs = (ADIOI_PMEM_fs *)ADIOI_Malloc(sizeof(ADIOI_PMEM_fs));
   if (pmem_fs == NULL) {
     *error_code =
         MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
-                             __LINE__, MPI_ERR_OTHER, "Error allc memory", 0);
+                             __LINE__, MPI_ERR_OTHER, "**nomem2", 0);
     goto on_abort;
   }
   memset(pmem_fs, 0, sizeof(ADIOI_PMEM_fs));
