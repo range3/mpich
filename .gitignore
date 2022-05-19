@@ -1,5 +1,10 @@
 # Lines that start with '#' are comments.  See gitignore(5) for more info.
 
+# intermediate files
+removed_la_files.txt
+spack-build-*
+spack-configure-*
+
 # objects and archives
 *.[oa]
 # libtool objects
@@ -149,6 +154,8 @@ Makefile.am-stamp
 /confdb/ltversion.m4
 /confdb/lt~obsolete.m4
 /confdb/missing
+/confdb/libtool.m4.orig
+/confdb/libtool.m4.rej
 
 # random stuff
 /maint/gcovmerge

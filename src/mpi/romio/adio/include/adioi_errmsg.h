@@ -58,6 +58,7 @@ MPI_ERR_IO
     MPIR_ERR_DEFERRED "independent IO attempted even though no_indep_rw hint given"
     MPIR_ERR_NO_GPFS "ROMIO has not been configured to use the GPFS file system"
     MPIR_ERR_NO_IME "ROMIO has not been configured to use the IME burst buffer"
+    MPIR_ERR_NO_CHFS "ROMIO has not been configured to use the CHFS file system"
 
 MPI_ERR_COMM
     MPIR_ERR_COMM_NULL (null communicator. from MPICH)
@@ -65,5 +66,3 @@ MPIR_ERR_COMM_INTER  (no intercommunicator. (from MPICH)
 
 MPI_ERR_UNSUPPORTED_DATAREP
     MPIR_ERR_NOT_NATIVE_DATAREP "Only native data representation currently supported"
-
-
