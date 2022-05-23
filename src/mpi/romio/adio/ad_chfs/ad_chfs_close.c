@@ -6,14 +6,22 @@
 #include "ad_chfs.h"
 #include "adioi.h"
 
-void ADIOI_CHFS_Close(ADIO_File fd, int *error_code)
-{
-    int myrank, nprocs;
+void ADIOI_CHFS_Close(ADIO_File fd, int* error_code) {
+  static char myname[] = "ADIOI_CHFS_Close";
+#ifdef DEBUG
+  int myrank, nprocs;
+  MPI_Comm_size(fd->comm, &nprocs);
+  MPI_Comm_rank(fd->comm, &myrank);
+  FPRINTF(stdout, "[%d/%d] ADIOI_CHFS_Close called on %s\n", myrank, nprocs,
+          fd->filename);
+#endif
 
-    fd->fd_sys = -1;
-    *error_code = MPI_SUCCESS;
+  *error_code = MPI_SUCCESS;
+  if (chfs_close(fd->fd_sys)) {
+    *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
+    goto on_abort;
+  }
 
-    MPI_Comm_size(fd->comm, &nprocs);
-    MPI_Comm_rank(fd->comm, &myrank);
-    FPRINTF(stdout, "[%d/%d] ADIOI_CHFS_Close called on %s\n", myrank, nprocs, fd->filename);
+on_abort:
+  ADIOI_CHFS_Term(fd, error_code);
 }

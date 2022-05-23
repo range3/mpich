@@ -8,6 +8,7 @@ if BUILD_AD_CHFS
 noinst_HEADERS += adio/ad_chfs/ad_chfs.h
 
 romio_other_sources +=                \
+    adio/ad_chfs/ad_chfs_init.c   \
     adio/ad_chfs/ad_chfs_close.c  \
     adio/ad_chfs/ad_chfs_read.c   \
     adio/ad_chfs/ad_chfs_rdcoll.c \
