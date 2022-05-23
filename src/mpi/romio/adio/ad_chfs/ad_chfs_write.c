@@ -43,6 +43,11 @@ void ADIOI_CHFS_WriteContig(ADIO_File fd,
   while (xfered < data_size) {
     ss = chfs_pwrite(fd->fd_sys, buf + xfered, data_size - xfered,
                      write_offset + xfered);
+#ifdef DEBUG
+    FPRINTF(stdout, "[%d/%d] chfs_pwrite xfered=%d,sz=%d,ofs=%d,ss=%d\n",
+            myrank, nprocs, xfered, data_size - xfered, write_offset + xfered,
+            ss);
+#endif
     if (ss < 0) {
       *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
       return;
