@@ -19,7 +19,7 @@ void ADIOI_CHFS_Open(ADIO_File fd, int* error_code) {
 
   *error_code = MPI_SUCCESS;
 
-  ADIOI_CHFS_Init(fd, error_code);
+  ADIOI_CHFS_Init(error_code);
   if (*error_code != MPI_SUCCESS) {
     return;
   }
@@ -79,5 +79,5 @@ on_abort:
   // if (chfs_fs) {
   //   ADIOI_Free(chfs_fs);
   // }
-  ADIOI_CHFS_Term(fd, error_code);
+  ADIOI_CHFS_Term(error_code);
 }

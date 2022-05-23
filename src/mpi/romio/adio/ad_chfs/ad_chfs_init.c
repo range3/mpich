@@ -2,7 +2,7 @@
 
 static int ADIOI_CHFS_init_cnt = 0;
 
-void ADIOI_CHFS_Init(ADIO_File fd, int* error_code) {
+void ADIOI_CHFS_Init(int* error_code) {
   static char myname[] = "ADIOI_CHFS_Init";
 
   if (ADIOI_CHFS_init_cnt == 0) {
@@ -16,7 +16,7 @@ void ADIOI_CHFS_Init(ADIO_File fd, int* error_code) {
   ADIOI_CHFS_init_cnt += 1;
 }
 
-void ADIOI_CHFS_Term(ADIO_File fd, int* error_code) {
+void ADIOI_CHFS_Term(int* error_code) {
   static char myname[] = "ADIOI_CHFS_Term";
 
   if (ADIOI_CHFS_init_cnt <= 0) {

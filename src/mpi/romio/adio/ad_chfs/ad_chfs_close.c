@@ -23,5 +23,5 @@ void ADIOI_CHFS_Close(ADIO_File fd, int* error_code) {
   }
 
 on_abort:
-  ADIOI_CHFS_Term(fd, error_code);
+  ADIOI_CHFS_Term(error_code);
 }

@@ -18,8 +18,8 @@ struct ADIOI_CHFS_fs_s {
 };
 typedef struct ADIOI_CHFS_fs_s ADIOI_CHFS_fs;
 
-void ADIOI_CHFS_Init(ADIO_File fd, int *error_code);
-void ADIOI_CHFS_Term(ADIO_File fd, int *error_code);
+void ADIOI_CHFS_Init(int *error_code);
+void ADIOI_CHFS_Term(int *error_code);
 void ADIOI_CHFS_Open(ADIO_File fd, int *error_code);
 void ADIOI_CHFS_Close(ADIO_File fd, int *error_code);
 void ADIOI_CHFS_ReadContig(ADIO_File fd, void *buf, int count,
