@@ -51,16 +51,6 @@ void ADIOI_CHFS_Open(ADIO_File fd, int* error_code) {
   }
   perm = S_IFREG | perm;
 
-  // ADIOI_CHFS_fs* chfs_fs = NULL;
-  // chfs_fs = (ADIOI_CHFS_fs*)ADIOI_Malloc(sizeof(ADIOI_CHFS_fs));
-  // if (chfs_fs == NULL) {
-  //   *error_code =
-  //       MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
-  //                            __LINE__, MPI_ERR_OTHER, "**nomem2", 0);
-  //   goto on_abort;
-  // }
-  // memset(chfs_fs, 0, sizeof(ADIOI_CHFS_fs));
-
   if (fd->access_mode & ADIO_CREATE) {
     fd->fd_sys = chfs_create(fd->filename, flags, perm);
   } else {
@@ -72,12 +62,8 @@ void ADIOI_CHFS_Open(ADIO_File fd, int* error_code) {
     goto on_abort;
   }
 
-  // fd->fs_ptr = chfs_fs;
   return;
 
 on_abort:
-  // if (chfs_fs) {
-  //   ADIOI_Free(chfs_fs);
-  // }
   ADIOI_CHFS_Term(error_code);
 }
