@@ -32,10 +32,12 @@ ADIO_Offset ADIOI_CHFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 
     *error_code = MPI_SUCCESS;
 
+#ifdef DEBUG
     MPI_Comm_size(fd->comm, &nprocs);
     MPI_Comm_rank(fd->comm, &myrank);
     FPRINTF(stdout, "[%d/%d] ADIOI_CHFS_SeekIndividual called on %s\n",
             myrank, nprocs, fd->filename);
+#endif
 
     ADIOI_Datatype_iscontig(fd->filetype, &filetype_is_contig);
     etype_size = fd->etype_size;

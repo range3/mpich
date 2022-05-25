@@ -12,8 +12,10 @@ void ADIOI_CHFS_Set_shared_fp(ADIO_File fd, ADIO_Offset offset, int *error_code)
 
     *error_code = MPI_SUCCESS;
 
+#ifdef DEBUG
     MPI_Comm_size(fd->comm, &nprocs);
     MPI_Comm_rank(fd->comm, &myrank);
     FPRINTF(stdout, "[%d/%d] ADIOI_CHFS_Set_shared_fp called on %s\n",
             myrank, nprocs, fd->filename);
+#endif
 }
