@@ -52,8 +52,14 @@ void ADIOI_CHFS_Open(ADIO_File fd, int* error_code) {
   perm = S_IFREG | perm;
 
   if (fd->access_mode & ADIO_CREATE) {
+#ifdef DEBUG
+  FPRINTF(stdout, "[%d/%d]    calling chfs_create %s\n", myrank, nprocs, fd->filename);
+#endif
     fd->fd_sys = chfs_create(fd->filename, flags, perm);
   } else {
+#ifdef DEBUG
+  FPRINTF(stdout, "[%d/%d]    calling chfs_open %s\n", myrank, nprocs, fd->filename);
+#endif
     fd->fd_sys = chfs_open(fd->filename, flags);
   }
 
