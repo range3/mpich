@@ -19,9 +19,6 @@ void ADIOI_CHFS_Close(ADIO_File fd, int* error_code) {
   *error_code = MPI_SUCCESS;
   if (chfs_close(fd->fd_sys)) {
     *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
-    goto on_abort;
+    return;
   }
-
-on_abort:
-  ADIOI_CHFS_Term(error_code);
 }

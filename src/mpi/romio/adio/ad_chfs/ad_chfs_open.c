@@ -53,23 +53,20 @@ void ADIOI_CHFS_Open(ADIO_File fd, int* error_code) {
 
   if (fd->access_mode & ADIO_CREATE) {
 #ifdef DEBUG
-  FPRINTF(stdout, "[%d/%d]    calling chfs_create %s\n", myrank, nprocs, fd->filename);
+    FPRINTF(stdout, "[%d/%d]    calling chfs_create %s\n", myrank, nprocs,
+            fd->filename);
 #endif
     fd->fd_sys = chfs_create(fd->filename, flags, perm);
   } else {
 #ifdef DEBUG
-  FPRINTF(stdout, "[%d/%d]    calling chfs_open %s\n", myrank, nprocs, fd->filename);
+    FPRINTF(stdout, "[%d/%d]    calling chfs_open %s\n", myrank, nprocs,
+            fd->filename);
 #endif
     fd->fd_sys = chfs_open(fd->filename, flags);
   }
 
   if (fd->fd_sys < 0) {
     *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
-    goto on_abort;
+    return;
   }
-
-  return;
-
-on_abort:
-  ADIOI_CHFS_Term(error_code);
 }

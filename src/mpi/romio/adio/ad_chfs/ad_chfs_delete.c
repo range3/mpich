@@ -27,6 +27,4 @@ void ADIOI_CHFS_Delete(const char* filename, int* error_code) {
   if (chfs_unlink(filename)) {
     *error_code = ADIOI_Err_create_code(myname, filename, errno);
   }
-
-  ADIOI_CHFS_Term(error_code);
 }

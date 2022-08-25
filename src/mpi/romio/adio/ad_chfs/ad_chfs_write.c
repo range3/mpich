@@ -44,7 +44,7 @@ void ADIOI_CHFS_WriteContig(ADIO_File fd,
     ss = chfs_pwrite(fd->fd_sys, buf + xfered, data_size - xfered,
                      write_offset + xfered);
 #ifdef DEBUG
-    FPRINTF(stdout, "[%d/%d] chfs_pwrite xfered=%d,sz=%d,ofs=%d,ss=%d\n",
+    FPRINTF(stdout, "[%d/%d]    chfs_pwrite xfered=%d,sz=%d,ofs=%d,ss=%d\n",
             myrank, nprocs, xfered, data_size - xfered, write_offset + xfered,
             ss);
 #endif
@@ -86,6 +86,11 @@ void ADIOI_CHFS_WriteStrided(ADIO_File fd,
   MPI_Comm_rank(fd->comm, &myrank);
   FPRINTF(stdout, "[%d/%d] ADIOI_CHFS_WriteStrided called on %s\n", myrank,
           nprocs, fd->filename);
+  MPI_Count datatype_size;
+  MPI_Type_size_x(datatype, &datatype_size);
+  FPRINTF(stdout, "[%d/%d]    writing (buf = %p, loc = %lld, sz = %lld)\n",
+          myrank, nprocs, buf, (long long)offset,
+          (long long)datatype_size * (long long)count);
   FPRINTF(stdout, "[%d/%d]    calling ADIOI_GEN_WriteStrided\n", myrank,
           nprocs);
 #endif
