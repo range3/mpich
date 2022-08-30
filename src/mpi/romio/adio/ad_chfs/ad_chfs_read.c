@@ -4,6 +4,7 @@
  */
 
 #include "ad_chfs.h"
+#include "ad_chfs_common.h"
 #include "adioi.h"
 
 void ADIOI_CHFS_ReadContig(ADIO_File fd,
@@ -16,6 +17,7 @@ void ADIOI_CHFS_ReadContig(ADIO_File fd,
                            int* error_code) {
   static char myname[] = "ADIOI_CHFS_ReadContig";
   int myrank, nprocs;
+  struct ADIOI_CHFS_fs_s* chfs_fs = (ADIOI_CHFS_fs*)fd->fs_ptr;;
   MPI_Count datatype_size;
   MPI_Type_size_x(datatype, &datatype_size);
 
@@ -28,12 +30,8 @@ void ADIOI_CHFS_ReadContig(ADIO_File fd,
 
   *error_code = MPI_SUCCESS;
 
-  if (file_ptr_type != ADIO_EXPLICIT_OFFSET) {
+  if (file_ptr_type == ADIO_INDIVIDUAL) {
     offset = fd->fp_ind;
-    fd->fp_ind += datatype_size * count;
-    fd->fp_sys_posn = fd->fp_ind;
-  } else {
-    fd->fp_sys_posn = offset + datatype_size * count;
   }
 
 #ifdef DEBUG
@@ -50,13 +48,25 @@ void ADIOI_CHFS_ReadContig(ADIO_File fd,
                     offset + xfered);
     if (ss < 0) {
       *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
+      fd->fp_sys_posn = -1;
       return;
+    }
+
+    if (ss == 0) {
+      break;
     }
     xfered += ss;
   }
 
+  fd->fp_sys_posn = offset + xfered;
+  if (file_ptr_type == ADIO_INDIVIDUAL) {
+    fd->fp_ind += xfered;
+  }
+
 #ifdef HAVE_STATUS_SET_BYTES
-  MPIR_Status_set_bytes(status, datatype, datatype_size * count);
+  if (status && ss >= 0) {
+    MPIR_Status_set_bytes(status, datatype, xfered);
+  }
 #endif
 }
 
