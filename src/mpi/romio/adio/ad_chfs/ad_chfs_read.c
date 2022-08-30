@@ -54,6 +54,29 @@ void ADIOI_CHFS_ReadContig(ADIO_File fd,
 
     if (ss == 0) {
       break;
+      /* EOF ? */
+      if (offset + xfered >= chfs_fs->filesize) {
+        /* EOF */
+#ifdef DEBUG
+  FPRINTF(stdout, "[%d/%d]    EOF (loc = %lld, sz = %lld)\n",
+          myrank, nprocs, (long long)offset + xfered,
+          (long long)data_size - xfered);
+#endif
+        break;
+      } else {
+        /* read hole chunk */
+        if (offset + data_size < chfs_fs->filesize) {
+          ss = data_size - xfered;
+        } else {
+          ss = chfs_fs->filesize - offset - xfered;
+        }
+        memset(buf + xfered, 0, ss);
+#ifdef DEBUG
+  FPRINTF(stdout, "[%d/%d]    reading from hole (loc = %lld, sz = %lld)\n",
+          myrank, nprocs, (long long)offset + xfered,
+          (long long)ss);
+#endif
+      }
     }
     xfered += ss;
   }
@@ -61,6 +84,10 @@ void ADIOI_CHFS_ReadContig(ADIO_File fd,
   fd->fp_sys_posn = offset + xfered;
   if (file_ptr_type == ADIO_INDIVIDUAL) {
     fd->fp_ind += xfered;
+  }
+
+  if (fd->fp_sys_posn > chfs_fs->filesize) {
+    chfs_fs->filesize = fd->fp_sys_posn;
   }
 
 #ifdef HAVE_STATUS_SET_BYTES

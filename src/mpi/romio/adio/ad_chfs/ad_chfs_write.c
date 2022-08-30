@@ -65,6 +65,10 @@ void ADIOI_CHFS_WriteContig(ADIO_File fd,
 #endif
   }
 
+  if (fd->fp_sys_posn > chfs_fs->filesize) {
+    chfs_fs->filesize = fd->fp_sys_posn;
+  }
+
 #ifdef HAVE_STATUS_SET_BYTES
   if (status && ss >= 0) {
     MPIR_Status_set_bytes(status, datatype, datatype_size * count);

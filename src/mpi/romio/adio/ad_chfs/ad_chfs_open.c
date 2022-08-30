@@ -4,10 +4,12 @@
  */
 
 #include "ad_chfs.h"
+#include "ad_chfs_common.h"
 #include "adioi.h"
 
 void ADIOI_CHFS_Open(ADIO_File fd, int* error_code) {
   static char myname[] = "ADIOI_CHFS_Open";
+  struct ADIOI_CHFS_fs_s* chfs_fs;
 
 #ifdef DEBUG
   int myrank, nprocs;
@@ -21,6 +23,15 @@ void ADIOI_CHFS_Open(ADIO_File fd, int* error_code) {
 
   ADIOI_CHFS_Init(error_code);
   if (*error_code != MPI_SUCCESS) {
+    return;
+  }
+
+  chfs_fs = (ADIOI_CHFS_fs*)ADIOI_Malloc(sizeof(ADIOI_CHFS_fs));
+
+  if (chfs_fs == NULL) {
+    *error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+                                       myname, __LINE__, MPI_ERR_UNKNOWN,
+                                       "Error allocating memory", 0);
     return;
   }
 
@@ -67,6 +78,18 @@ void ADIOI_CHFS_Open(ADIO_File fd, int* error_code) {
 
   if (fd->fd_sys < 0) {
     *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
+    ADIOI_Free(chfs_fs);
     return;
   }
+
+  chfs_fs->filesize = ADIOI_CHFS_get_size_coll(fd, error_code);
+  if (*error_code != MPI_SUCCESS) {
+    ADIOI_Free(chfs_fs);
+    chfs_close(fd->fd_sys);
+    fd->fd_sys = -1;
+    return;
+  }
+
+  fd->fs_ptr = chfs_fs;
+  fd->fd_direct = -1;
 }

@@ -4,10 +4,12 @@
  */
 
 #include "ad_chfs.h"
+#include "ad_chfs_common.h"
 #include "adioi.h"
 
 void ADIOI_CHFS_Close(ADIO_File fd, int* error_code) {
   static char myname[] = "ADIOI_CHFS_Close";
+  struct ADIOI_CHFS_fs_s *chfs_fs;
 #ifdef DEBUG
   int myrank, nprocs;
   MPI_Comm_size(fd->comm, &nprocs);
@@ -19,6 +21,10 @@ void ADIOI_CHFS_Close(ADIO_File fd, int* error_code) {
   *error_code = MPI_SUCCESS;
   if (chfs_close(fd->fd_sys)) {
     *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
-    return;
   }
+
+  chfs_fs = (ADIOI_CHFS_fs*) fd->fs_ptr;
+  ADIOI_Free(chfs_fs);
+
+  fd->fd_sys = -1;
 }
