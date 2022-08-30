@@ -4,6 +4,7 @@
  */
 
 #include "ad_chfs.h"
+#include "ad_chfs_common.h"
 #include "adioi.h"
 
 void ADIOI_CHFS_WriteContig(ADIO_File fd,
@@ -17,6 +18,7 @@ void ADIOI_CHFS_WriteContig(ADIO_File fd,
   static char myname[] = "ADIOI_CHFS_WriteContig";
   int myrank, nprocs;
   MPI_Count datatype_size;
+  struct ADIOI_CHFS_fs_s* chfs_fs = (ADIOI_CHFS_fs*)fd->fs_ptr;;
   MPI_Type_size_x(datatype, &datatype_size);
 
 #ifdef DEBUG
@@ -30,14 +32,11 @@ void ADIOI_CHFS_WriteContig(ADIO_File fd,
 #endif
   *error_code = MPI_SUCCESS;
 
-  off_t write_offset;
-  if (file_ptr_type != ADIO_EXPLICIT_OFFSET) {
+  off_t write_offset = offset;
+  if (file_ptr_type == ADIO_INDIVIDUAL) {
     write_offset = fd->fp_ind;
-  } else {
-    write_offset = offset;
   }
   size_t data_size = datatype_size * count;
-
   size_t xfered = 0;
   ssize_t ss;
   while (xfered < data_size) {
@@ -50,25 +49,30 @@ void ADIOI_CHFS_WriteContig(ADIO_File fd,
 #endif
     if (ss < 0) {
       *error_code = ADIOI_Err_create_code(myname, fd->filename, errno);
+      fd->fp_sys_posn = -1;
       return;
     }
 
     xfered += ss;
   }
 
-  if (file_ptr_type != ADIO_EXPLICIT_OFFSET) {
-    fd->fp_ind += data_size;
-    fd->fp_sys_posn = fd->fp_ind;
+  fd->fp_sys_posn = write_offset + xfered;
+  if (file_ptr_type == ADIO_INDIVIDUAL) {
+    fd->fp_ind += xfered;
 #ifdef DEBUG
     FPRINTF(stdout, "[%d/%d]    new file position is %lld\n", myrank, nprocs,
             (long long)fd->fp_ind);
 #endif
-  } else {
-    fd->fp_sys_posn = write_offset + data_size;
+  }
+
+  if (fd->fp_sys_posn > chfs_fs->filesize) {
+    chfs_fs->filesize = fd->fp_sys_posn;
   }
 
 #ifdef HAVE_STATUS_SET_BYTES
-  MPIR_Status_set_bytes(status, datatype, datatype_size * count);
+  if (status && ss >= 0) {
+    MPIR_Status_set_bytes(status, datatype, datatype_size * count);
+  }
 #endif
 }
 
