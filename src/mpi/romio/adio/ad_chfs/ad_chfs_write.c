@@ -88,14 +88,14 @@ void ADIOI_CHFS_WriteStrided(ADIO_File fd,
           nprocs, fd->filename);
   MPI_Count datatype_size;
   MPI_Type_size_x(datatype, &datatype_size);
-  FPRINTF(stdout, "[%d/%d]    writing (buf = %p, loc = %lld, sz = %lld)\n",
-          myrank, nprocs, buf, (long long)offset,
-          (long long)datatype_size * (long long)count);
+  // FPRINTF(stdout, "[%d/%d]    writing (buf = %p, loc = %lld, sz = %lld)\n",
+  //         myrank, nprocs, buf, (long long)offset,
+  //         (long long)datatype_size * (long long)count);
   FPRINTF(stdout, "[%d/%d]    calling ADIOI_GEN_WriteStrided\n", myrank,
           nprocs);
 #endif
 
   *error_code = MPI_SUCCESS;
-  ADIOI_GEN_WriteStrided(fd, buf, count, datatype, file_ptr_type, offset,
+  ADIOI_GEN_WriteStrided_naive(fd, buf, count, datatype, file_ptr_type, offset,
                          status, error_code);
 }
