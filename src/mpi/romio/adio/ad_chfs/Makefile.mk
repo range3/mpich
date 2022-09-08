@@ -5,7 +5,8 @@
 
 if BUILD_AD_CHFS
 
-noinst_HEADERS += adio/ad_chfs/ad_chfs.h
+noinst_HEADERS += \
+	adio/ad_chfs/ad_chfs.h
 
 romio_other_sources +=                \
     adio/ad_chfs/ad_chfs_init.c   \

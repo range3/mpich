@@ -3,11 +3,14 @@
  *     See COPYRIGHT in top-level directory
  */
 
+#include <limits.h>
 #include "ad_chfs.h"
+#include "ad_chfs_common.h"
 #include "adioi.h"
 
 void ADIOI_CHFS_Delete(const char* filename, int* error_code) {
   static char myname[] = "ADIOI_CHFS_Delete";
+  char absolute_path[PATH_MAX];
 
 #ifdef DEBUG
   int myrank, nprocs;
@@ -24,7 +27,13 @@ void ADIOI_CHFS_Delete(const char* filename, int* error_code) {
     return;
   }
 
-  if (chfs_unlink(filename)) {
+  if (ADIOI_CHFS_get_absolute_path(filename, absolute_path,
+                                   sizeof(absolute_path)) == NULL) {
+    *error_code = ADIOI_Err_create_code(myname, filename, errno);
+    return;
+  }
+
+  if (chfs_unlink(absolute_path)) {
     *error_code = ADIOI_Err_create_code(myname, filename, errno);
   }
 }
