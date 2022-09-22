@@ -4,7 +4,10 @@
 ##
 
 # for mpi_init.h, which is included generated binding functions
-AM_CPPFLAGS += -I$(top_srcdir)/src/mpi/init
+AM_CPPFLAGS += \
+	-I$(top_srcdir)/src/mpi/init \
+	-I$(top_srcdir)/src/mpi/romio/adio/include \
+	-I$(top_srcdir)/src/mpi/romio/adio/ad_chfs
 
 mpi_core_sources += \
     src/mpi/init/init_impl.c      \

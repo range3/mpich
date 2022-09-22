@@ -7,6 +7,7 @@
 #include "mpir_info.h"
 #include "datatype.h"
 #include "mpi_init.h"
+#include "ad_chfs.h"
 #include <strings.h>
 
 /*
@@ -91,6 +92,12 @@ int MPIR_Init_impl(int *argc, char ***argv)
 
     int provided;
     mpi_errno = MPII_Init_thread(argc, argv, threadLevel, &provided, NULL);
+
+#ifdef ROMIO_CHFS
+    if(mpi_errno == 0) {
+      ADIOI_CHFS_Init(&mpi_errno);
+    }
+#endif
 
     return mpi_errno;
 }
