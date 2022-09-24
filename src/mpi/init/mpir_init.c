@@ -94,8 +94,9 @@ int MPIR_Init_impl(int *argc, char ***argv)
     mpi_errno = MPII_Init_thread(argc, argv, threadLevel, &provided, NULL);
 
 #ifdef ROMIO_CHFS
-    if(mpi_errno == 0) {
-      ADIOI_CHFS_Init(&mpi_errno);
+    if(mpi_errno == MPI_SUCCESS) {
+      int chfs_err;
+      ADIOI_CHFS_Init(&chfs_err);
     }
 #endif
 
