@@ -95,8 +95,11 @@ int MPIR_Init_impl(int *argc, char ***argv)
 
 #ifdef ROMIO_CHFS
     if(mpi_errno == MPI_SUCCESS) {
-      int chfs_err;
-      ADIOI_CHFS_Init(&chfs_err);
+      char* chfs_srvs;
+      chfs_srvs = getenv("CHFS_SERVER");
+      if (chfs_srvs != NULL && chfs_srvs[0] != '\0') {
+        ADIOI_CHFS_Init(&mpi_errno);
+      }
     }
 #endif
 
