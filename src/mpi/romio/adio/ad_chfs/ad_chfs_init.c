@@ -5,12 +5,23 @@ static int ADIOI_CHFS_Initialized = MPI_KEYVAL_INVALID;
 
 void ADIOI_CHFS_Term(int* error_code) {
   static char myname[] = "ADIOI_CHFS_Term";
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
-  if (chfs_term()) {
-    *error_code =
-        MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
-                             __LINE__, MPI_ERR_FILE, "chfs_term", 0);
-    return;
+  if(myrank == 0) {
+    if (chfs_term()) {
+      *error_code =
+          MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
+                              __LINE__, MPI_ERR_FILE, "chfs_term", 0);
+      return;
+    }
+  } else {
+    if (chfs_term_without_sync()) {
+      *error_code =
+          MPIO_Err_create_code(*error_code, MPIR_ERR_RECOVERABLE, myname,
+                              __LINE__, MPI_ERR_FILE, "chfs_term_without_sync", 0);
+      return;
+    }
   }
   *error_code = MPI_SUCCESS;
 }
